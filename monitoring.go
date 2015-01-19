@@ -57,11 +57,11 @@ func (w *Monitoring) StartSearch() {
 		log.Fatal("Failed to start search daemon: ", err)
 	}
 
-	defer func () {
+	defer func() {
 		l.Close()
 		log.Println("Failure")
 	}()
-	
+
 	for {
 		fd, err := l.Accept()
 		if err != nil {
@@ -70,7 +70,7 @@ func (w *Monitoring) StartSearch() {
 		}
 
 		l, _, err := bufio.NewReader(fd).ReadLine()
-		
+
 		if err != nil {
 			log.Println("Failed to readline: ", err)
 		}
@@ -82,7 +82,7 @@ func (w *Monitoring) StartSearch() {
 		matchedFiles := w.SearchFilename(line)
 
 		writer := bufio.NewWriter(fd)
-		
+
 		for _, file := range matchedFiles {
 			writer.WriteString(file)
 			writer.WriteString("\n")
@@ -131,8 +131,8 @@ func (w *Monitoring) AddFile(event inotify.Event) {
 	}
 }
 
-func (w *Monitoring)indexDirectory() {
-	err := filepath.Walk(w.Path, func (path string, info os.FileInfo, err error) error {
+func (w *Monitoring) indexDirectory() {
+	err := filepath.Walk(w.Path, func(path string, info os.FileInfo, err error) error {
 		log.Println("Path: ", path)
 		w.Files = append(w.Files, path)
 		return nil
