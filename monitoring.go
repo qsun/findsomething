@@ -2,6 +2,7 @@ package main
 
 import "log"
 import "bufio"
+import "strings"
 import "net"
 import "golang.org/x/exp/inotify"
 
@@ -65,13 +66,34 @@ func (w *Monitoring) StartSearch() {
 		}
 
 		l, _, err := bufio.NewReader(fd).ReadLine()
+		
 		if err != nil {
 			log.Println("Failed to readline: ", err)
 		}
 
 		line := string(l)
 
-		log.Println("This line is: ", line)
+		log.Println("Searching pattern: ", line)
+
+		matchedFiles := w.SearchFilename(line)
+
+		writer := bufio.NewWriter(fd)
+		
+		for _, file := range matchedFiles {
+			writer.WriteString(file)
+			writer.WriteString("\n")
+		}
+
+		e := writer.Flush()
+		if err != nil {
+			log.Println("Error: ", e)
+		}
+
+		log.Println("Finished")
+		e = fd.Close()
+		if e != nil {
+			log.Println("Error: ", e)
+		}
 	}
 }
 
@@ -120,4 +142,34 @@ func (w *Monitoring) RemoveFile(event inotify.Event) {
 		}
 	}
 	log.Println("Removed: ", file)
+}
+
+func (w *Monitoring) SearchFilename(pattern string) []string {
+	matchedFilenames := make([]string, 0, 100)
+
+	for _, file := range w.Files {
+		log.Println("Checking ", file)
+
+		match := file
+		mismatch := false
+		for _, c := range pattern {
+			log.Println("C: ", c)
+			pos := strings.IndexRune(match, c)
+			if pos == -1 {
+				mismatch = true
+				break
+			} else {
+				log.Println("Pass")
+			}
+
+			match = match[pos+1:]
+		}
+
+		if !mismatch {
+			matchedFilenames = append(matchedFilenames, file)
+		}
+	}
+
+	log.Println("Matched: ", matchedFilenames)
+	return matchedFilenames
 }
