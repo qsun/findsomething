@@ -2,8 +2,10 @@ package main
 
 import "log"
 import "bufio"
+import "os"
 import "strings"
 import "net"
+import "path/filepath"
 import "golang.org/x/exp/inotify"
 
 type Monitoring struct {
@@ -34,6 +36,8 @@ func (w *Monitoring) Start() {
 	if err != nil {
 		log.Fatal("Failed to watch ", w.Path, ": ", err)
 	}
+
+	w.indexDirectory()
 
 	for {
 		select {
@@ -125,7 +129,18 @@ func (w *Monitoring) AddFile(event inotify.Event) {
 		w.Watcher.AddWatch(file, inotify.IN_ALL_EVENTS)
 		log.Println("Add watcher: ", file)
 	}
+}
 
+func (w *Monitoring)indexDirectory() {
+	err := filepath.Walk(w.Path, func (path string, info os.FileInfo, err error) error {
+		log.Println("Path: ", path)
+		w.Files = append(w.Files, path)
+		return nil
+	})
+
+	if err != nil {
+		log.Println("Walk error: ", err)
+	}
 }
 
 func (w *Monitoring) RemoveFile(event inotify.Event) {
