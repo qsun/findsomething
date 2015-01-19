@@ -160,6 +160,9 @@ func (w *Monitoring) RemoveFile(event inotify.Event) {
 }
 
 func (w *Monitoring) SearchFilename(pattern string) []string {
+
+	/* TODO: need better algo */
+
 	matchedFilenames := make([]string, 0, 100)
 
 	for _, file := range w.Files {
