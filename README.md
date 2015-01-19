@@ -5,5 +5,3 @@
 3. reindex
 4. read line
 5. return results
-
-test       
