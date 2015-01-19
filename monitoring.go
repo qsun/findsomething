@@ -1,20 +1,23 @@
 package main
 
 import "log"
-
+import "bufio"
+import "net"
 import "golang.org/x/exp/inotify"
 
 type Monitoring struct {
-	Path    string
-	Files   []string
-	Change  chan inotify.Event
-	Watcher inotify.Watcher
+	Path           string
+	SearchSockFile string
+	Files          []string
+	Change         chan inotify.Event
+	Watcher        inotify.Watcher
 }
 
-func NewMonitoring(path string) *Monitoring {
+func NewMonitoring(path string, searchSockFile string) *Monitoring {
 	monitor := new(Monitoring)
 	monitor.Path = path
 	monitor.Change = make(chan inotify.Event)
+	monitor.SearchSockFile = searchSockFile
 	return monitor
 }
 
@@ -36,9 +39,39 @@ func (w *Monitoring) Start() {
 		case ev := <-watcher.Event:
 			// log.Println("Event: ", ev)
 			w.Change <- *ev
+
 		case err := <-watcher.Error:
 			log.Println("Error: ", err)
 		}
+	}
+}
+
+func (w *Monitoring) StartSearch() {
+	l, err := net.Listen("unix", w.SearchSockFile)
+	if err != nil {
+		log.Fatal("Failed to start search daemon: ", err)
+	}
+
+	defer func () {
+		l.Close()
+		log.Println("Failure")
+	}()
+	
+	for {
+		fd, err := l.Accept()
+		if err != nil {
+			log.Println("Failed to accept fd: ", err)
+			continue
+		}
+
+		l, _, err := bufio.NewReader(fd).ReadLine()
+		if err != nil {
+			log.Println("Failed to readline: ", err)
+		}
+
+		line := string(l)
+
+		log.Println("This line is: ", line)
 	}
 }
 
